@@ -1,0 +1,93 @@
+name: Publish runtime image
+
+on:
+  workflow_dispatch:
+    inputs:
+      ninfer_ref:
+        description: "Full engine commit SHA from practicorecoza/ninfer-engine"
+        required: true
+        default: "27b24bae4d63633a0f8681ef9b5cc253fd964bf1"
+      tag:
+        description: "Image tag (default: <short-sha>-rk4v4e8-vision8k-froggeric)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out deployment repo
+        uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/.ghcup /usr/share/swift 2>/dev/null || true
+          docker system prune -af 2>/dev/null || true
+          df -h /
+
+      - name: Resolve tag
+        id: tag
+        env:
+          NINFER_REF: ${{ inputs.ninfer_ref }}
+          TAG_IN: ${{ inputs.tag }}
+        run: |
+          if ! [[ "$NINFER_REF" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "error: ninfer_ref must be a full 40-character commit hash" >&2
+            exit 1
+          fi
+          if [ -z "$TAG_IN" ]; then
+            echo "value=${NINFER_REF:0:8}-rk4v4e8-vision8k-froggeric" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=$TAG_IN" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (no push yet)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          load: true
+          tags: ghcr.io/practicorecoza/ninfer-sm120a-quant-kv:${{ steps.tag.outputs.value }}
+          build-args: |
+            NINFER_REPO=https://github.com/practicorecoza/ninfer-engine.git
+            NINFER_REF=${{ inputs.ninfer_ref }}
+            IMAGE_SOURCE=https://github.com/practicorecoza/ninfer
+
+      - name: Layout check
+        run: |
+          docker run --rm --entrypoint /bin/sh \
+            'ghcr.io/practicorecoza/ninfer-sm120a-quant-kv:${{ steps.tag.outputs.value }}' -ec '
+            test -x /root/ninfer-5090/build-sm120a/apps/ninfer
+            test -x /root/ninfer-5090/build-sm120a/apps/ninfer-serve
+            test -x /usr/local/bin/ninfer-entrypoint
+            test -x /usr/sbin/sshd
+            test -x /opt/hf/bin/hf
+            test -f /usr/share/doc/ninfer/BUILDINFO
+            test -f /usr/share/doc/ninfer/LICENSE
+            test -f /usr/share/doc/ninfer/froggeric-chat-template.jinja
+            ! find /etc/ssh -maxdepth 1 -name "ssh_host_*_key" | grep -q .
+            '
+
+      - name: Push
+        run: |
+          docker push 'ghcr.io/practicorecoza/ninfer-sm120a-quant-kv:${{ steps.tag.outputs.value }}'
+
+      - name: Report digest
+        run: |
+          docker buildx imagetools inspect \
+            'ghcr.io/practicorecoza/ninfer-sm120a-quant-kv:${{ steps.tag.outputs.value }}' \
+            --format '{{json .Manifest}}' | head -c 400; echo

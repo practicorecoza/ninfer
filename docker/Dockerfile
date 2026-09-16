@@ -6,7 +6,7 @@ ARG RUNTIME_IMAGE=nvidia/cuda:13.1.2-runtime-ubuntu24.04@sha256:bff001d3257971cc
 FROM ${BUILD_IMAGE} AS build
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG NINFER_REPO=https://github.com/KobusG/ninfer-engine.git
+ARG NINFER_REPO=https://github.com/practicorecoza/ninfer-engine.git
 ARG NINFER_REF
 
 RUN apt-get update \
@@ -34,10 +34,11 @@ RUN cmake -S . -B /build -G Ninja \
 FROM ${RUNTIME_IMAGE}
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG NINFER_REPO=https://github.com/KobusG/ninfer-engine.git
+ARG NINFER_REPO=https://github.com/practicorecoza/ninfer-engine.git
 ARG NINFER_REF
+ARG IMAGE_SOURCE=https://github.com/practicorecoza/ninfer
 
-LABEL org.opencontainers.image.source="${NINFER_REPO}" \
+LABEL org.opencontainers.image.source="${IMAGE_SOURCE}" \
       org.opencontainers.image.revision="${NINFER_REF}" \
       org.opencontainers.image.description="NInfer sm120a quantized-KV and bounded-vision runtime" \
       org.opencontainers.image.licenses="Apache-2.0"

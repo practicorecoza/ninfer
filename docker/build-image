@@ -3,9 +3,9 @@ set -euo pipefail
 
 ROOT=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PROJECT_ROOT=$(cd -P "$ROOT/.." && pwd)
-SOURCE_REPO="${NINFER_SOURCE_REPO:-https://github.com/KobusG/ninfer-engine.git}"
+SOURCE_REPO="${NINFER_SOURCE_REPO:-https://github.com/practicorecoza/ninfer-engine.git}"
 SOURCE_REF="${NINFER_SOURCE_REF:-27b24bae4d63633a0f8681ef9b5cc253fd964bf1}"
-IMAGE="${NINFER_IMAGE_REPOSITORY:-ghcr.io/kobusg/ninfer-sm120a-quant-kv}"
+IMAGE="${NINFER_IMAGE_REPOSITORY:-ghcr.io/practicorecoza/ninfer-sm120a-quant-kv}"
 TAG=
 PUSH=0
 
@@ -14,7 +14,7 @@ usage() {
 usage: ./docker/build-image [--ref COMMIT] [--image REPOSITORY] [--tag TAG] [--push]
 
 Builds the shared model-free sm_120a NInfer runtime locally. The source ref must
-be a full commit hash from KobusG/ninfer-engine. --push publishes the image;
+be a full commit hash from practicorecoza/ninfer-engine. --push publishes the image;
 authenticate to GHCR first.
 EOF
 }
